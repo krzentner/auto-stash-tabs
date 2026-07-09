@@ -1,7 +1,13 @@
 "use strict";
 
 const NUMBER_FIELDS = ["idleMinutes", "minTabs", "groupingMinutes"];
-const BOOL_FIELDS = ["countAllWindows", "skipPinned", "skipAudible", "dedupe"];
+const BOOL_FIELDS = [
+  "countAllWindows",
+  "countAllGroups",
+  "skipPinned",
+  "skipAudible",
+  "dedupe",
+];
 
 async function load() {
   const s = await getSettings();

@@ -64,18 +64,29 @@ async function computeSweepPlan(settings, {ignoreIdle = false} = {}) {
     windowTypes: ["normal"],
   });
 
-  const groups = [];
-  if (settings.countAllWindows) {
-    groups.push(windows.filter(w => !w.incognito).flatMap(w => w.tabs || []));
-  } else {
-    for (const w of windows) {
-      if (!w.incognito) groups.push(w.tabs || []);
+  // Partition tabs into pools; minTabs applies to each pool independently.
+  // Collapsed tab groups look no different from expanded ones here (Firefox
+  // collapses them purely visually), so grouped tabs are always swept.
+  const pools = new Map();
+  for (const w of windows) {
+    if (w.incognito) continue;
+    for (const tab of w.tabs || []) {
+      // groupId is -1 for ungrouped tabs and undefined on Firefox < 138.
+      const grouped = typeof tab.groupId === "number" && tab.groupId >= 0;
+      const key =
+        !settings.countAllGroups && grouped
+          ? `group:${tab.groupId}`
+          : settings.countAllWindows
+            ? "all"
+            : `window:${w.id}`;
+      if (!pools.has(key)) pools.set(key, []);
+      pools.get(key).push(tab);
     }
   }
 
   const toStash = [];
   const upcoming = [];
-  for (const tabs of groups) {
+  for (const tabs of pools.values()) {
     const excess = tabs.length - settings.minTabs;
     // Sort by raw lastAccessed, not the grace-clamped lastActive(): right
     // after install/startup the clamp gives every tab the same timestamp,

@@ -44,6 +44,13 @@ pages, etc.). Reader-view tabs are stashed as their underlying article URL.
 - **Idle minutes** (default 20) — how long a tab must be inactive.
 - **Minimum tabs** (default 10) — only stash while more tabs than this are
   open; counted per window or across all windows.
+- **Apply the cap across all tab groups** (default on) — grouped tabs count
+  toward their window's total. When off, each Firefox tab group is capped
+  separately (it keeps its own most recently used tabs down to the minimum),
+  and ungrouped tabs are counted per window as usual. Collapsed groups are
+  swept like expanded ones — Firefox collapses them only visually. Note that
+  a stashed tab loses its group membership: Tab Stash's bookmark format has
+  no notion of Firefox tab groups.
 - **Skip pinned / audible tabs** (default on).
 - **Whitelist** — one pattern per line; a tab is kept if its URL contains the
   pattern (case insensitive, `*` wildcard supported).

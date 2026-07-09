@@ -17,6 +17,11 @@ const DEFAULT_SETTINGS = {
   // If true, minTabs applies to the total across all windows; otherwise it
   // applies to each window separately.
   countAllWindows: false,
+  // If true, tabs in Firefox tab groups count toward their window's total
+  // (the cap applies across all groups). If false, each tab group is capped
+  // separately: it keeps its own minTabs most recently used tabs, and
+  // ungrouped tabs are counted per window (or globally) as usual.
+  countAllGroups: true,
   skipPinned: true,
   skipAudible: true,
   // Skip creating a bookmark when the URL is already saved somewhere under
