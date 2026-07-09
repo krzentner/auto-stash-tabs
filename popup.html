@@ -1,0 +1,81 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      font: 13px/1.4 system-ui, sans-serif;
+      color: #15141a;
+      margin: 0;
+      width: 320px;
+    }
+    @media (prefers-color-scheme: dark) {
+      body { color: #fbfbfe; }
+    }
+    header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px 6px;
+    }
+    header h1 { font-size: 14px; margin: 0; flex: 1; }
+    section { padding: 4px 12px; }
+    button {
+      padding: 3px 10px;
+      cursor: pointer;
+    }
+    label { display: block; margin: 6px 0; cursor: pointer; }
+    #upcoming { margin: 6px 0; padding: 0; list-style: none; }
+    #upcoming li {
+      display: flex;
+      gap: 8px;
+      padding: 2px 0;
+      align-items: baseline;
+    }
+    #upcoming .title {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    #upcoming .eta {
+      flex: none;
+      font-variant-numeric: tabular-nums;
+      opacity: 0.75;
+    }
+    .muted { opacity: 0.7; }
+    footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px 10px;
+      border-top: 1px solid #8884;
+      margin-top: 8px;
+    }
+    a { color: inherit; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Auto Stash Tabs</h1>
+    <button id="pauseBtn"></button>
+  </header>
+  <section>
+    <label>
+      <input type="checkbox" id="lockTab">
+      Never auto-stash this tab (until closed)
+    </label>
+  </section>
+  <section>
+    <div id="summary" class="muted"></div>
+    <ul id="upcoming"></ul>
+  </section>
+  <footer>
+    <button id="stashNow" title="Immediately stash the least recently used
+eligible tabs until the minimum tab count is reached">Stash idle tabs now</button>
+    <a href="#" id="openOptions">Options</a>
+  </footer>
+  <script src="common.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

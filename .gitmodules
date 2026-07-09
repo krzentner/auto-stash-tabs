@@ -1,0 +1,6 @@
+[submodule "vendor/tabwrangler"]
+	path = vendor/tabwrangler
+	url = https://github.com/tabwrangler/tabwrangler
+[submodule "vendor/tab-stash"]
+	path = vendor/tab-stash
+	url = https://github.com/josh-berry/tab-stash

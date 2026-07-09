@@ -1,0 +1,88 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      font: 14px/1.5 system-ui, sans-serif;
+      color: #15141a;
+      margin: 12px;
+      min-width: 480px;
+    }
+    @media (prefers-color-scheme: dark) {
+      body { color: #fbfbfe; }
+    }
+    fieldset {
+      border: 1px solid #8886;
+      border-radius: 6px;
+      margin-bottom: 14px;
+    }
+    legend { font-weight: 600; padding: 0 6px; }
+    label { display: block; margin: 8px 0; }
+    input[type="number"] { width: 5em; }
+    textarea {
+      width: 100%;
+      min-height: 6em;
+      box-sizing: border-box;
+      font-family: monospace;
+    }
+    .hint { font-size: 12px; opacity: 0.75; margin: 2px 0 8px; }
+    #status { color: #058b00; font-weight: 600; min-height: 1.5em; }
+    button { padding: 4px 14px; }
+  </style>
+</head>
+<body>
+  <fieldset>
+    <legend>When to stash</legend>
+    <label>
+      Stash a tab after it has been idle for
+      <input type="number" id="idleMinutes" min="1" step="1"> minutes
+    </label>
+    <label>
+      …but only while more than
+      <input type="number" id="minTabs" min="0" step="1"> tabs are open
+      (never goes below this count)
+    </label>
+    <label>
+      <input type="checkbox" id="countAllWindows">
+      Count tabs across all windows (instead of per window)
+    </label>
+  </fieldset>
+
+  <fieldset>
+    <legend>Never stash</legend>
+    <label><input type="checkbox" id="skipPinned"> Pinned tabs</label>
+    <label><input type="checkbox" id="skipAudible"> Tabs playing sound</label>
+    <label for="whitelist">Tabs whose URL matches any of these patterns:</label>
+    <textarea id="whitelist" placeholder="mail.google.com&#10;*important*"></textarea>
+    <p class="hint">
+      One pattern per line. A tab is kept if its URL contains the pattern
+      anywhere (case insensitive). Use * as a wildcard.
+    </p>
+  </fieldset>
+
+  <fieldset>
+    <legend>Storage (Tab Stash compatible)</legend>
+    <p class="hint">
+      Stashed tabs are saved as bookmarks in the same "Tab Stash" folder used
+      by the Tab Stash extension, in "saved-…" groups it recognizes.
+    </p>
+    <label>
+      Add to the most recent group if it is newer than
+      <input type="number" id="groupingMinutes" min="1" step="1">
+      minutes, otherwise start a new group
+    </label>
+    <label>
+      <input type="checkbox" id="dedupe">
+      Skip bookmarking URLs already saved somewhere in the stash
+      (the tab is still closed)
+    </label>
+  </fieldset>
+
+  <button id="save">Save</button>
+  <p id="status"></p>
+
+  <script src="common.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>
