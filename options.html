@@ -3,14 +3,16 @@
 <head>
   <meta charset="utf-8">
   <style>
+    :root {
+      /* Follow the browser's light/dark theme using system colors. */
+      color-scheme: light dark;
+    }
     body {
       font: 14px/1.5 system-ui, sans-serif;
-      color: #15141a;
+      background: Canvas;
+      color: CanvasText;
       margin: 12px;
       min-width: 480px;
-    }
-    @media (prefers-color-scheme: dark) {
-      body { color: #fbfbfe; }
     }
     fieldset {
       border: 1px solid #8886;
@@ -27,7 +29,11 @@
       font-family: monospace;
     }
     .hint { font-size: 12px; opacity: 0.75; margin: 2px 0 8px; }
-    #status { color: #058b00; font-weight: 600; min-height: 1.5em; }
+    #status {
+      color: light-dark(#058b00, #6fdc6f);
+      font-weight: 600;
+      min-height: 1.5em;
+    }
     button { padding: 4px 14px; }
   </style>
 </head>

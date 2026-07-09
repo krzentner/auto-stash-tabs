@@ -3,14 +3,16 @@
 <head>
   <meta charset="utf-8">
   <style>
+    :root {
+      /* Follow the browser's light/dark theme using system colors. */
+      color-scheme: light dark;
+    }
     body {
       font: 13px/1.4 system-ui, sans-serif;
-      color: #15141a;
+      background: Canvas;
+      color: CanvasText;
       margin: 0;
       width: 320px;
-    }
-    @media (prefers-color-scheme: dark) {
-      body { color: #fbfbfe; }
     }
     header {
       display: flex;
