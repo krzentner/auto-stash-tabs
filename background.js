@@ -77,9 +77,15 @@ async function computeSweepPlan(settings, {ignoreIdle = false} = {}) {
   const upcoming = [];
   for (const tabs of groups) {
     const excess = tabs.length - settings.minTabs;
+    // Sort by raw lastAccessed, not the grace-clamped lastActive(): right
+    // after install/startup the clamp gives every tab the same timestamp,
+    // which would make the pick below arbitrary. Raw recency ensures that
+    // when more tabs than the excess are past the idle threshold (fresh
+    // install, TTL lowered, machine suspended), the longest-idle tabs are
+    // stashed and the most recently used ones are kept.
     const candidates = tabs
       .filter(t => !isExempt(t, settings, whitelistRes))
-      .sort((a, b) => lastActive(a) - lastActive(b));
+      .sort((a, b) => (a.lastAccessed || 0) - (b.lastAccessed || 0));
 
     for (const tab of candidates) {
       const idleFor = now - lastActive(tab);
@@ -87,6 +93,7 @@ async function computeSweepPlan(settings, {ignoreIdle = false} = {}) {
         id: tab.id,
         title: tab.title || tab.url,
         url: tab.url,
+        lastAccessed: tab.lastAccessed || 0,
         // Time until this tab reaches the idle threshold (<= 0 means ready).
         msLeft: idleMs - idleFor,
         blockedByCount: excess <= 0,
@@ -100,7 +107,9 @@ async function computeSweepPlan(settings, {ignoreIdle = false} = {}) {
         .slice(0, excess),
     );
   }
-  upcoming.sort((a, b) => a.msLeft - b.msLeft);
+  // Tie-break by raw recency so the displayed order matches stash order
+  // even while the startup grace period makes msLeft identical.
+  upcoming.sort((a, b) => a.msLeft - b.msLeft || a.lastAccessed - b.lastAccessed);
   return {toStash, upcoming};
 }
 
