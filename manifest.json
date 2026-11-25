@@ -6,7 +6,7 @@
   "homepage_url": "https://github.com/krzentner/auto-stash-tabs",
   "browser_specific_settings": {
     "gecko": {
-      "id": "auto-stash-tabs@krzentner.dev",
+      "id": "auto-stash-tabs@krz.is",
       "strict_min_version": "91.0",
       "data_collection_permissions": {
         "required": ["none"]
