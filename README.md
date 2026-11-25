@@ -107,6 +107,27 @@ just build   # writes web-ext-artifacts/auto_stash_tabs-<version>.zip
 
 Both run `web-ext` through `npx` and leave `vendor/` out of the package.
 
+### Integration tests
+
+```sh
+just test
+```
+
+builds a test copy of the package, then uses Selenium to launch a real browser with a
+throwaway profile (never your own), install the package, and check what
+gets stashed in a handful of scenarios (`test/integration.test.mjs`). It
+runs headless and takes about half a minute.
+
+- The browser is the first one found of Firefox, Firefox Developer Edition
+  and Zen; set `FIREFOX_BINARY` to the path of an executable to choose one
+  explicitly.
+- `just test-headful` runs the same tests in a visible window.
+- The first run downloads geckodriver (cached afterwards); set `GECKODRIVER`
+  to use your own.
+
+Not covered: tabs becoming idle through real elapsed time (the tests set the
+idle threshold to 0 instead), and Zen spaces.
+
 ### Layout
 
 | Path            | Purpose                                             |
@@ -117,7 +138,9 @@ Both run `web-ext` through `npx` and leave `vendor/` out of the package.
 | `options.*`     | Settings page                                        |
 | `popup.*`       | Toolbar popup (pause, lock tab, stash now, upcoming list) |
 | `vendor/`       | Upstream projects as submodules, for reference only  |
-| `Justfile`      | `just build` / `just lint` packaging tasks           |
+| `Justfile`      | `just build` / `just lint` / `just test` tasks       |
+| `test/`         | Integration tests and their browser harness          |
+| `package.json`  | Dev dependencies for the tests (not shipped)         |
 
 ## License
 

@@ -1,0 +1,13 @@
+{
+  "name": "auto-stash-tabs",
+  "private": true,
+  "description": "Development tooling for the Auto Stash Tabs extension (not part of the packaged extension).",
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/integration.test.mjs"
+  },
+  "devDependencies": {
+    "selenium-webdriver": "^4.27.0"
+  }
+}
