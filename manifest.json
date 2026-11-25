@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Auto Stash Tabs",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Automatically stashes idle tabs to bookmarks when too many tabs are open (Tab Stash compatible).",
   "homepage_url": "https://github.com/krzentner/auto-stash-tabs",
   "browser_specific_settings": {
