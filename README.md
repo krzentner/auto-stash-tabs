@@ -37,7 +37,8 @@ Never stashed: the active tab, multi-selected tabs, pinned tabs (optional),
 tabs playing sound (optional), hidden tabs, tabs requesting attention or
 sharing camera/microphone/screen, private-browsing tabs, whitelisted URLs,
 tabs locked via the toolbar popup, and non-web URLs (`about:`, extension
-pages, etc.). Reader-view tabs are stashed as their underlying article URL.
+pages, etc.). Hidden and private-browsing tabs also don't count toward the
+minimum tab count. Reader-view tabs are stashed as their underlying article URL.
 
 ## Options
 

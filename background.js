@@ -71,6 +71,9 @@ async function computeSweepPlan(settings, {ignoreIdle = false} = {}) {
   for (const w of windows) {
     if (w.incognito) continue;
     for (const tab of w.tabs || []) {
+      // Hidden tabs (e.g. parked by another extension) are never stashed and
+      // aren't visibly "open", so they don't count toward minTabs either.
+      if (tab.hidden) continue;
       const grouped = isGrouped(tab);
       const key =
         !settings.countAllGroups && grouped
@@ -97,7 +100,7 @@ async function computeSweepPlan(settings, {ignoreIdle = false} = {}) {
       .filter(t => !isExempt(t, settings, whitelistRes))
       .sort((a, b) => (a.lastAccessed || 0) - (b.lastAccessed || 0));
 
-    for (const tab of candidates) {
+    candidates.forEach((tab, i) => {
       const idleFor = now - lastActive(tab);
       upcoming.push({
         id: tab.id,
@@ -106,9 +109,11 @@ async function computeSweepPlan(settings, {ignoreIdle = false} = {}) {
         lastAccessed: tab.lastAccessed || 0,
         // Time until this tab reaches the idle threshold (<= 0 means ready).
         msLeft: idleMs - idleFor,
-        blockedByCount: excess <= 0,
+        // Only the `excess` least recently used candidates can be stashed;
+        // the rest are kept to hold the pool at minTabs.
+        blockedByCount: i >= excess,
       });
-    }
+    });
 
     if (excess <= 0) continue;
     toStash.push(
@@ -117,9 +122,15 @@ async function computeSweepPlan(settings, {ignoreIdle = false} = {}) {
         .slice(0, excess),
     );
   }
-  // Tie-break by raw recency so the displayed order matches stash order
-  // even while the startup grace period makes msLeft identical.
-  upcoming.sort((a, b) => a.msLeft - b.msLeft || a.lastAccessed - b.lastAccessed);
+  // Tabs that can actually be stashed come first. Tie-break by raw recency so
+  // the displayed order matches stash order even while the startup grace
+  // period makes msLeft identical.
+  upcoming.sort(
+    (a, b) =>
+      a.blockedByCount - b.blockedByCount ||
+      a.msLeft - b.msLeft ||
+      a.lastAccessed - b.lastAccessed,
+  );
   return {toStash, upcoming};
 }
 
@@ -172,8 +183,10 @@ async function ensureStashRoot() {
     // Like Tab Stash, create it with no explicit parent (lands in the
     // browser's default bookmarks location), then re-search in case another
     // extension created one concurrently.
-    await browser.bookmarks.create({title: STASH_ROOT_NAME});
+    const created = await browser.bookmarks.create({title: STASH_ROOT_NAME});
     candidates = await findCandidates();
+    // In case the search doesn't see the new folder yet.
+    if (candidates.length === 0) candidates = [created];
   }
   return candidates[0];
 }
@@ -276,16 +289,26 @@ async function sweep({manual = false} = {}) {
 
     const root = await ensureStashRoot();
     const folder = await ensureDestFolder(root, settings);
-    const existing = settings.dedupe
-      ? await urlsUnderStashRoot(root)
-      : new Set();
+    const existing = settings.dedupe ? await urlsUnderStashRoot(root) : null;
+    const whitelistRes = parseWhitelist(settings.whitelist);
 
     let stashed = 0;
     const recent = [];
     for (const tab of toStash) {
       const url = unwrapUrl(tab.url);
       try {
-        if (!existing.has(url)) {
+        // The plan is a snapshot and stashing takes a while; skip tabs that
+        // were closed, navigated, or became exempt (e.g. activated) since.
+        const current = await browser.tabs.get(tab.id).catch(() => null);
+        if (
+          !current ||
+          current.url !== tab.url ||
+          isExempt(current, settings, whitelistRes)
+        ) {
+          continue;
+        }
+
+        if (!existing || !existing.has(url)) {
           // browser.tabGroups needs Firefox 139+; older versions stash flat.
           const parent =
             isGrouped(tab) && browser.tabGroups
@@ -296,7 +319,7 @@ async function sweep({manual = false} = {}) {
             title: tab.title || url,
             url,
           });
-          existing.add(url);
+          if (existing) existing.add(url);
         }
         // Only close the tab once the bookmark definitely exists.
         await browser.tabs.remove(tab.id);
@@ -314,12 +337,18 @@ async function sweep({manual = false} = {}) {
   }
 }
 
+async function getStats() {
+  return (
+    (await browser.storage.local.get("stats")).stats || {
+      totalStashed: 0,
+      lastStashTime: null,
+      recent: [],
+    }
+  );
+}
+
 async function recordStats(count, newEntries) {
-  const stats = (await browser.storage.local.get("stats")).stats || {
-    totalStashed: 0,
-    lastStashTime: null,
-    recent: [],
-  };
+  const stats = await getStats();
   stats.totalStashed += count;
   stats.lastStashTime = Date.now();
   stats.recent = [...newEntries.reverse(), ...stats.recent].slice(0, 20);
@@ -366,11 +395,7 @@ browser.runtime.onMessage.addListener(async message => {
     case "getStatus": {
       const settings = await getSettings();
       const {upcoming} = await computeSweepPlan(settings);
-      const stats = (await browser.storage.local.get("stats")).stats || {
-        totalStashed: 0,
-        lastStashTime: null,
-        recent: [],
-      };
+      const stats = await getStats();
       return {
         settings,
         upcoming: upcoming.slice(0, 8),
