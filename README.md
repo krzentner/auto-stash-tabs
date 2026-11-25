@@ -48,9 +48,10 @@ pages, etc.). Reader-view tabs are stashed as their underlying article URL.
   toward their window's total. When off, each Firefox tab group is capped
   separately (it keeps its own most recently used tabs down to the minimum),
   and ungrouped tabs are counted per window as usual. Collapsed groups are
-  swept like expanded ones — Firefox collapses them only visually. Note that
-  a stashed tab loses its group membership: Tab Stash's bookmark format has
-  no notion of Firefox tab groups.
+  swept like expanded ones — Firefox collapses them only visually. A tab
+  stashed out of a group is bookmarked into a subfolder named after the group
+  (the same layout Tab Stash 3.5+ uses), so Tab Stash can restore it as a tab
+  group. This needs Firefox 139+; older versions stash grouped tabs flat.
 - **Skip pinned / audible tabs** (default on).
 - **Whitelist** — one pattern per line; a tab is kept if its URL contains the
   pattern (case insensitive, `*` wildcard supported).
@@ -86,7 +87,7 @@ To build an XPI: `web-ext build` (submodules under `vendor/` are excluded via
 
 | Path            | Purpose                                             |
 | --------------- | --------------------------------------------------- |
-| `manifest.json` | MV2 manifest (permissions: tabs, bookmarks, storage, alarms) |
+| `manifest.json` | MV2 manifest (permissions: tabs, tabGroups, bookmarks, storage, alarms) |
 | `background.js` | Idle tracking, sweep loop, Tab Stash-compatible bookmark writing |
 | `common.js`     | Shared settings defaults and helpers                 |
 | `options.*`     | Settings page                                        |

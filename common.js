@@ -53,7 +53,7 @@ function genDefaultFolderName(date) {
 
 /** Same parser as Tab Stash's getDefaultFolderNameISODate(). */
 function getDefaultFolderNameISODate(name) {
-  const m = name.match(/saved-([-0-9:.T]+Z)/);
+  const m = name.match(/^saved-([-0-9:.T]+Z)$/);
   return m ? m[1] : null;
 }
 

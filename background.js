@@ -71,8 +71,7 @@ async function computeSweepPlan(settings, {ignoreIdle = false} = {}) {
   for (const w of windows) {
     if (w.incognito) continue;
     for (const tab of w.tabs || []) {
-      // groupId is -1 for ungrouped tabs and undefined on Firefox < 138.
-      const grouped = typeof tab.groupId === "number" && tab.groupId >= 0;
+      const grouped = isGrouped(tab);
       const key =
         !settings.countAllGroups && grouped
           ? `group:${tab.groupId}`
@@ -130,8 +129,9 @@ async function computeSweepPlan(settings, {ignoreIdle = false} = {}) {
 // Mirrors the conventions in vendor/tab-stash/src/model/bookmarks.ts and
 // model/index.ts: a root folder titled exactly "Tab Stash" (shallowest, then
 // oldest wins if there are several), unnamed groups named
-// "saved-<ISO timestamp>" inserted at index 0, and reuse of the topmost
-// unnamed group while it is recent enough.
+// "saved-<ISO timestamp>" inserted at index 0, reuse of the topmost unnamed
+// group while it is recent enough, and (as of Tab Stash 3.5) a subfolder per
+// Firefox tab group.
 
 async function bookmarkDepth(node) {
   let depth = 0;
@@ -199,6 +199,55 @@ async function ensureDestFolder(root, settings) {
   });
 }
 
+/** Bookmark folder last used for each Firefox tab group (groupId -> bookmark
+ * id), so tabs trickling out of an untitled group land in one folder.
+ * Session-only, like the group IDs themselves. */
+const groupFolderIds = new Map();
+
+function isGrouped(tab) {
+  // groupId is -1 for ungrouped tabs and undefined on Firefox < 138.
+  return typeof tab.groupId === "number" && tab.groupId >= 0;
+}
+
+/** Find or create the subfolder of `dest` that holds tabs from a Firefox tab
+ * group. Mirrors how Tab Stash (3.5+) saves a tab group: a child folder
+ * titled with the group's name, or a default "saved-..." name if the group
+ * is untitled. Tab Stash can restore such a folder as a tab group. */
+async function ensureGroupFolder(dest, groupId) {
+  const knownId = groupFolderIds.get(groupId);
+  if (knownId) {
+    try {
+      const [node] = await browser.bookmarks.get(knownId);
+      if (node && !node.url && node.parentId === dest.id) return node;
+    } catch (e) {
+      // The folder was deleted; fall through and make a new one.
+    }
+  }
+
+  let title = "";
+  try {
+    title = (await browser.tabGroups.get(groupId)).title || "";
+  } catch (e) {
+    // Group vanished mid-sweep; treat it as untitled.
+  }
+
+  let folder;
+  if (title) {
+    const children = await browser.bookmarks.getChildren(dest.id);
+    folder = children.find(
+      c => !c.url && c.type !== "separator" && c.title === title,
+    );
+  }
+  if (!folder) {
+    folder = await browser.bookmarks.create({
+      parentId: dest.id,
+      title: title || genDefaultFolderName(new Date()),
+    });
+  }
+  groupFolderIds.set(groupId, folder.id);
+  return folder;
+}
+
 async function urlsUnderStashRoot(root) {
   const urls = new Set();
   const [tree] = await browser.bookmarks.getSubTree(root.id);
@@ -237,8 +286,13 @@ async function sweep({manual = false} = {}) {
       const url = unwrapUrl(tab.url);
       try {
         if (!existing.has(url)) {
+          // browser.tabGroups needs Firefox 139+; older versions stash flat.
+          const parent =
+            isGrouped(tab) && browser.tabGroups
+              ? await ensureGroupFolder(folder, tab.groupId)
+              : folder;
           await browser.bookmarks.create({
-            parentId: folder.id,
+            parentId: parent.id,
             title: tab.title || url,
             url,
           });

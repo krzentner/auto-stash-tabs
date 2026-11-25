@@ -13,7 +13,7 @@
       }
     }
   },
-  "permissions": ["tabs", "bookmarks", "storage", "alarms"],
+  "permissions": ["tabs", "tabGroups", "bookmarks", "storage", "alarms"],
   "background": {
     "scripts": ["common.js", "background.js"],
     "persistent": true
