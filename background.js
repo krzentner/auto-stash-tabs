@@ -293,8 +293,8 @@ const groupFolderIds = new Map();
  * @param {tabs.Tab} tab
  * @returns {boolean} */
 function isGrouped(tab) {
-  // groupId is -1 for ungrouped tabs and undefined on Firefox < 138.
-  return typeof tab.groupId === "number" && tab.groupId >= 0;
+  // groupId is -1 for ungrouped tabs.
+  return tab.groupId >= 0;
 }
 
 /** Find or create the subfolder of `dest` that holds tabs from a Firefox tab
@@ -302,7 +302,7 @@ function isGrouped(tab) {
  * titled with the group's name, or a default "saved-..." name if the group
  * is untitled. Tab Stash can restore such a folder as a tab group.
  * @param {bookmarks.BookmarkTreeNode} dest From ensureDestFolder().
- * @param {number} groupId The tab's groupId (requires browser.tabGroups).
+ * @param {number} groupId The tab's groupId.
  * @returns {Promise<bookmarks.BookmarkTreeNode>} The group's subfolder. */
 async function ensureGroupFolder(dest, groupId) {
   const knownId = groupFolderIds.get(groupId);
@@ -498,11 +498,9 @@ async function stashTabs(settings, toStash) {
       }
 
       if (!existing || !existing.has(url)) {
-        // browser.tabGroups needs Firefox 139+; older versions stash flat.
-        const parent =
-          isGrouped(tab) && browser.tabGroups
-            ? await ensureGroupFolder(folder, tab.groupId)
-            : folder;
+        const parent = isGrouped(tab)
+          ? await ensureGroupFolder(folder, tab.groupId)
+          : folder;
         await browser.bookmarks.create({
           parentId: parent.id,
           title: tab.title || url,

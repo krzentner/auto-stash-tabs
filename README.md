@@ -56,7 +56,7 @@ minimum tab count. Reader-view tabs are stashed as their underlying article URL.
   swept like expanded ones — Firefox collapses them only visually. A tab
   stashed out of a group is bookmarked into a subfolder named after the group
   (the same layout Tab Stash 3.5+ uses), so Tab Stash can restore it as a tab
-  group. This needs Firefox 139+; older versions stash grouped tabs flat.
+  group.
 - **Skip pinned / audible tabs** (default on).
 - **Whitelist** — one pattern per line; a tab is kept if its URL contains the
   pattern (case insensitive, `*` wildcard supported).
@@ -97,16 +97,29 @@ web-ext run
 Or load manually: open `about:debugging#/runtime/this-firefox` →
 *Load Temporary Add-on…* → select `manifest.json`.
 
-To build an XPI: `web-ext build` (submodules under `vendor/` are excluded via
-`.web-ext-config.mjs` if you add one, or just zip the top-level files).
+To package the extension for addons.mozilla.org, with
+[just](https://github.com/casey/just) and Node.js installed:
+
+```sh
+just lint    # the checks addons.mozilla.org runs on upload
+just build   # writes web-ext-artifacts/auto_stash_tabs-<version>.zip
+```
+
+Both run `web-ext` through `npx` and leave `vendor/` out of the package.
 
 ### Layout
 
 | Path            | Purpose                                             |
 | --------------- | --------------------------------------------------- |
 | `manifest.json` | MV2 manifest (permissions: tabs, tabGroups, bookmarks, storage, alarms) |
-| `background.js` | Idle tracking, sweep loop, Tab Stash-compatible bookmark writing |
+| `background.js` | Idle tracking, sweep state machine, Tab Stash-compatible bookmark writing |
 | `common.js`     | Shared settings defaults and helpers                 |
 | `options.*`     | Settings page                                        |
 | `popup.*`       | Toolbar popup (pause, lock tab, stash now, upcoming list) |
 | `vendor/`       | Upstream projects as submodules, for reference only  |
+| `Justfile`      | `just build` / `just lint` packaging tasks           |
+
+## License
+
+[Apache License 2.0](LICENSE). The projects under `vendor/` are separate
+works under their own licenses and are not part of the packaged extension.
