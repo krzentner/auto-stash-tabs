@@ -37,27 +37,42 @@ const DEFAULT_SETTINGS = {
   whitelist: "",
 };
 
+/** Load the stored settings, filling in defaults for anything missing.
+ * @returns {Promise<object>} An object with every key of DEFAULT_SETTINGS. */
 async function getSettings() {
   const stored = (await browser.storage.local.get("settings")).settings || {};
   return {...DEFAULT_SETTINGS, ...stored};
 }
 
+/** Store the settings, replacing whatever was saved before.
+ * @param {object} settings A complete settings object.
+ * @returns {Promise<void>} */
 async function saveSettings(settings) {
   await browser.storage.local.set({settings});
 }
 
-/** Same folder-name convention as Tab Stash's genDefaultFolderName(). */
+/** Name for an unnamed stash folder. Same convention as Tab Stash's
+ * genDefaultFolderName().
+ * @param {Date} date
+ * @returns {string} "saved-<ISO timestamp>". */
 function genDefaultFolderName(date) {
   return `saved-${date.toISOString()}`;
 }
 
-/** Same parser as Tab Stash's getDefaultFolderNameISODate(). */
+/** Recognize an unnamed stash folder. Same parser as Tab Stash's
+ * getDefaultFolderNameISODate().
+ * @param {string} name A bookmark folder title.
+ * @returns {string|null} The ISO timestamp if the title is exactly a
+ *   default "saved-..." name, otherwise null. */
 function getDefaultFolderNameISODate(name) {
   const m = name.match(/^saved-([-0-9:.T]+Z)$/);
   return m ? m[1] : null;
 }
 
-/** Firefox reader view wraps the real URL; unwrap it before bookmarking. */
+/** Firefox reader view wraps the real URL; unwrap it before bookmarking.
+ * @param {string} url
+ * @returns {string} The article URL for an about:reader URL, otherwise the
+ *   input unchanged. */
 function unwrapUrl(url) {
   if (url && url.startsWith("about:reader?")) {
     const m = url.match(/[?&]url=([^&]+)/);
@@ -72,6 +87,10 @@ function unwrapUrl(url) {
   return url;
 }
 
+/** Whether a URL is worth bookmarking: a valid http, https, ftp or file URL
+ * (not about:, extension pages, etc.).
+ * @param {string} url
+ * @returns {boolean} */
 function isStashableUrl(url) {
   if (!url) return false;
   let parsed;
@@ -83,6 +102,10 @@ function isStashableUrl(url) {
   return ["http:", "https:", "ftp:", "file:"].includes(parsed.protocol);
 }
 
+/** Compile the whitelist setting into matchers.
+ * @param {string} text One pattern per line; blank lines are ignored.
+ * @returns {RegExp[]} One case-insensitive regex per pattern, matching the
+ *   pattern anywhere in a URL with "*" as a wildcard. */
 function parseWhitelist(text) {
   return (text || "")
     .split("\n")
@@ -98,6 +121,10 @@ function parseWhitelist(text) {
     });
 }
 
+/** Whether a URL matches any whitelist pattern.
+ * @param {string} url
+ * @param {RegExp[]} regexes As returned by parseWhitelist().
+ * @returns {boolean} */
 function isWhitelisted(url, regexes) {
   return regexes.some(re => re.test(url));
 }

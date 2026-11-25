@@ -20,7 +20,11 @@ reference (they are not needed at runtime).
 
 ## How it works
 
-Every minute, the extension checks all normal (non-private) windows:
+There is no periodic timer. The extension checks all normal (non-private)
+windows whenever a tab is opened or activated (or a setting or exemption
+changes), and otherwise sets a one-shot alarm for the moment the next tab
+becomes idle enough to stash — at most once a minute, and not at all while
+nothing can be stashed. On each check:
 
 1. A window (or the whole browser, configurable) must have **more than N
    tabs** open; tabs are only stashed down to N, never below.
@@ -64,6 +68,18 @@ minimum tab count. Reader-view tabs are stashed as their underlying article URL.
 The toolbar popup shows which tabs will be stashed next, lets you pause the
 extension, lock the current tab, or trigger an immediate "stash idle tabs
 now" sweep.
+
+## Zen Browser
+
+Zen only tells extensions about the tabs in the active space
+([zen-browser/desktop#11210](https://github.com/zen-browser/desktop/issues/11210)),
+so in Zen:
+
+- The minimum tab count applies to each space separately (per window, or
+  summed over each window's active space with "count across all windows").
+- Tabs in a background space are left alone until that space becomes
+  active. Switching to a space triggers a sweep right away, which then
+  treats its tabs like any others.
 
 ## Development
 

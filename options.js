@@ -9,6 +9,8 @@ const BOOL_FIELDS = [
   "dedupe",
 ];
 
+/** Fill the form from the stored settings.
+ * @returns {Promise<void>} */
 async function load() {
   const s = await getSettings();
   for (const f of NUMBER_FIELDS) document.getElementById(f).value = s[f];
@@ -16,6 +18,9 @@ async function load() {
   document.getElementById("whitelist").value = s.whitelist;
 }
 
+/** Store the form's values, then reload the form and flash "Saved.".
+ * Fields not on the form (such as paused) are preserved.
+ * @returns {Promise<void>} */
 async function save() {
   const s = await getSettings();
   for (const f of NUMBER_FIELDS) {

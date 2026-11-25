@@ -2,6 +2,9 @@
 
 let activeTabId = null;
 
+/** Format the time until a tab can be stashed.
+ * @param {number} ms Milliseconds remaining; <= 0 means it is ready now.
+ * @returns {string} "ready", "12m", or "1h 5m". */
 function fmtEta(ms) {
   if (ms <= 0) return "ready";
   const min = Math.ceil(ms / 60000);
@@ -9,6 +12,9 @@ function fmtEta(ms) {
   return `${Math.floor(min / 60)}h ${min % 60}m`;
 }
 
+/** Fetch the current status from the background page and redraw the whole
+ * popup (pause button, lock checkbox, summary, upcoming list).
+ * @returns {Promise<void>} */
 async function refresh() {
   const [activeTab] = await browser.tabs.query({
     active: true,
