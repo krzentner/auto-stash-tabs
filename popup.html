@@ -27,24 +27,33 @@
       cursor: pointer;
     }
     label { display: block; margin: 6px 0; cursor: pointer; }
-    #upcoming { margin: 6px 0; padding: 0; list-style: none; }
-    #upcoming li {
+    #upcoming, #recent { margin: 6px 0; padding: 0; list-style: none; }
+    #recent {
+      max-height: 170px;
+      overflow-y: auto;
+      border: 1px solid #8884;
+      border-radius: 4px;
+      padding: 2px 6px;
+    }
+    li {
       display: flex;
       gap: 8px;
       padding: 2px 0;
       align-items: baseline;
     }
-    #upcoming .title {
+    li .title {
       flex: 1;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
-    #upcoming .eta {
+    li .eta {
       flex: none;
       font-variant-numeric: tabular-nums;
       opacity: 0.75;
     }
+    #recent a { text-decoration: none; }
+    #recent a:hover { text-decoration: underline; }
     .muted { opacity: 0.7; }
     footer {
       display: flex;
@@ -71,6 +80,10 @@
   <section>
     <div id="summary" class="muted"></div>
     <ul id="upcoming"></ul>
+  </section>
+  <section id="recentSection" hidden>
+    <div class="muted">Recently stashed (click to reopen):</div>
+    <ul id="recent"></ul>
   </section>
   <footer>
     <button id="stashNow" title="Immediately stash the least recently used

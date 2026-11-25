@@ -23,7 +23,14 @@ const EXTENSION_ID = MANIFEST.browser_specific_settings.gecko.id;
 
 /** Fixed internal UUID, so the extension's pages have a known address. */
 const EXTENSION_UUID = "0b1f6a1e-5d0c-4c3e-9a55-a5c0de57a5b5";
-const CONTROL_URL = `moz-extension://${EXTENSION_UUID}/options.html`;
+
+/** Address of one of the extension's own pages in the test browser.
+ * @param {string} page e.g. "popup.html".
+ * @returns {string} */
+export function extensionUrl(page) {
+  return `moz-extension://${EXTENSION_UUID}/${page}`;
+}
+const CONTROL_URL = extensionUrl("options.html");
 
 /** Browsers to try, in order, when FIREFOX_BINARY isn't set. */
 const BINARY_CANDIDATES = [

@@ -13,8 +13,14 @@ default:
     @just --list
 
 # Package the extension into web-ext-artifacts/ for addons.mozilla.org.
-build:
+build: _check-package-unlocked
     npx web-ext build --overwrite-dest --ignore-files {{ignored}}
+
+# On Windows, a browser that has the package loaded as a temporary add-on
+# keeps the file open, and the build then fails with an unhelpful
+# "UNKNOWN: unknown error, open ...zip". Say what is actually wrong.
+_check-package-unlocked:
+    @foreach ($f in Get-ChildItem web-ext-artifacts -Filter *.zip -ErrorAction SilentlyContinue) { try { [IO.File]::Open($f.FullName, 'Open', 'ReadWrite', 'None').Close() } catch { Write-Host "Cannot rebuild: $($f.Name) is open in another program, most likely a browser that has it loaded as a temporary add-on. Remove it under about:debugging (This Firefox / This Zen), then run 'just build' again."; exit 1 } }
 
 # Run the integration tests headless in a real browser (throwaway profile).
 test: _test-setup

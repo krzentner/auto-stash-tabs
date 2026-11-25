@@ -1,6 +1,11 @@
 "use strict";
 
-const NUMBER_FIELDS = ["idleMinutes", "minTabs", "groupingMinutes"];
+const NUMBER_FIELDS = [
+  "idleMinutes",
+  "minTabs",
+  "groupingMinutes",
+  "recentCount",
+];
 const BOOL_FIELDS = [
   "countAllWindows",
   "countAllGroups",
@@ -24,11 +29,12 @@ async function load() {
 async function save() {
   const s = await getSettings();
   for (const f of NUMBER_FIELDS) {
-    // Enforce each input's own min attribute (out-of-range values are
+    // Enforce each input's own min/max attributes (out-of-range values are
     // ignored and the previous setting kept).
     const input = document.getElementById(f);
     const v = parseInt(input.value, 10);
-    if (!Number.isNaN(v) && v >= Number(input.min)) s[f] = v;
+    const max = input.max === "" ? Infinity : Number(input.max);
+    if (!Number.isNaN(v) && v >= Number(input.min) && v <= max) s[f] = v;
   }
   for (const f of BOOL_FIELDS) s[f] = document.getElementById(f).checked;
   s.whitelist = document.getElementById("whitelist").value;

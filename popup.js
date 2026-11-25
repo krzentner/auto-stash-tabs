@@ -13,7 +13,7 @@ function fmtEta(ms) {
 }
 
 /** Fetch the current status from the background page and redraw the whole
- * popup (pause button, lock checkbox, summary, upcoming list).
+ * popup (pause button, lock checkbox, summary, upcoming and recent lists).
  * @returns {Promise<void>} */
 async function refresh() {
   const [activeTab] = await browser.tabs.query({
@@ -23,7 +23,7 @@ async function refresh() {
   activeTabId = activeTab ? activeTab.id : null;
 
   const status = await browser.runtime.sendMessage({type: "getStatus"});
-  const {settings, upcoming, lockedTabIds, stats} = status;
+  const {settings, upcoming, recent, lockedTabIds, stats} = status;
 
   const pauseBtn = document.getElementById("pauseBtn");
   pauseBtn.textContent = settings.paused ? "▶ Resume" : "⏸ Pause";
@@ -61,7 +61,65 @@ async function refresh() {
     li.append(title, eta);
     list.append(li);
   }
+
+  renderRecent(recent);
 }
+
+/** Format how long ago something happened.
+ * @param {number} ms Elapsed milliseconds.
+ * @returns {string} "just now", "12m ago", "3h ago", or "2d ago". */
+function fmtAgo(ms) {
+  const min = Math.floor(ms / 60000);
+  if (min < 1) return "just now";
+  if (min < 60) return `${min}m ago`;
+  const hours = Math.floor(min / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
+/** Draw the "Recently stashed" list; each entry reopens its page when
+ * clicked. The whole section is hidden when there is nothing to show.
+ * @param {{title: string, url: string, time: number}[]} recent Newest first.
+ * @returns {void} */
+function renderRecent(recent) {
+  document.getElementById("recentSection").hidden = recent.length === 0;
+  const list = document.getElementById("recent");
+  list.textContent = "";
+  const now = Date.now();
+  for (const item of recent) {
+    const li = document.createElement("li");
+    const link = document.createElement("a");
+    link.className = "title";
+    link.href = item.url;
+    link.textContent = item.title;
+    link.title = item.url;
+    const ago = document.createElement("span");
+    ago.className = "eta";
+    ago.textContent = fmtAgo(now - item.time);
+    li.append(link, ago);
+    list.append(li);
+  }
+}
+
+/** Click handler for the recent list: reopen the clicked page in a new tab.
+ * Ctrl/Cmd/middle-click opens it in the background and keeps the popup open.
+ * The bookmark is left in place.
+ * @param {MouseEvent} e A click or auxclick inside the list.
+ * @returns {void} */
+function onRecentClick(e) {
+  const link = e.target.closest("a");
+  if (!link || (e.type === "auxclick" && e.button !== 1)) return;
+  e.preventDefault();
+  const background = e.ctrlKey || e.metaKey || e.button === 1;
+  browser.tabs
+    .create({url: link.href, active: !background})
+    .then(() => {
+      if (!background) window.close();
+    })
+    .catch(err => console.error("auto-stash-tabs: could not reopen", err));
+}
+document.getElementById("recent").addEventListener("click", onRecentClick);
+document.getElementById("recent").addEventListener("auxclick", onRecentClick);
 
 document.getElementById("pauseBtn").addEventListener("click", async e => {
   await browser.runtime.sendMessage({

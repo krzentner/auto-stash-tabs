@@ -10,7 +10,13 @@
 import assert from "node:assert/strict";
 import {after, before, beforeEach, test} from "node:test";
 
-import {inExtension, launch, startPageServer, waitFor} from "./harness.mjs";
+import {
+  extensionUrl,
+  inExtension,
+  launch,
+  startPageServer,
+  waitFor,
+} from "./harness.mjs";
 
 const DEFAULT_FOLDER = /^saved-[-0-9:.T]+Z$/;
 /** Longer than the extension's sweep debounce, to let a sweep happen. */
@@ -321,4 +327,94 @@ test("puts grouped tabs in a subfolder named after the group", async t => {
     folder.children.filter(c => !c.children).map(c => c.name),
     ["p1"],
   );
+});
+
+test("reports recently stashed tabs, newest first, up to the limit", async () => {
+  await openTabs(["p1", "p2", "p3", "p4", "p5", "p6"]);
+  await configure({minTabs: 3, idleMinutes: 0, recentCount: 3, paused: false});
+  await waitForOpenPages(2);
+
+  const {recent} = await status();
+  assert.deepEqual(
+    recent.map(entry => pageName(entry.url)),
+    ["p4", "p3", "p2"],
+    "the three most recent, newest first",
+  );
+  assert.deepEqual(
+    recent.map(entry => entry.title),
+    ["p4", "p3", "p2"],
+  );
+});
+
+test("recent list follows the bookmarks, whoever made or removed them", async () => {
+  await openTabs(["p1", "p2", "p3"]);
+  await configure({minTabs: 2, idleMinutes: 0, paused: false});
+  await waitForOpenPages(1);
+
+  // A bookmark added to the stash by something else (e.g. Tab Stash) shows
+  // up, and one that is deleted disappears.
+  await inExtension(
+    driver,
+    async url => {
+      const [root] = (await browser.bookmarks.search({title: "Tab Stash"})).filter(
+        n => !n.url,
+      );
+      const [folder] = await browser.bookmarks.getChildren(root.id);
+      const [first] = await browser.bookmarks.getChildren(folder.id);
+      await browser.bookmarks.remove(first.id);
+      await new Promise(resolve => setTimeout(resolve, 20));
+      await browser.bookmarks.create({parentId: folder.id, title: "other", url});
+    },
+    server.url("other"),
+  );
+
+  const {recent} = await status();
+  assert.deepEqual(
+    recent.map(entry => pageName(entry.url)),
+    ["other", "p2"],
+  );
+});
+
+test("popup lists three upcoming tabs and the recently stashed ones", async () => {
+  await openTabs(["p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8"]);
+  // Paused, so only the manual sweep below stashes anything: the control tab
+  // plus eight pages is three over the minimum.
+  await configure({minTabs: 6, idleMinutes: 30, paused: true});
+  await inExtension(driver, () =>
+    browser.runtime.sendMessage({type: "sweepNow"}),
+  );
+  await waitForOpenPages(5);
+
+  const control = await driver.getWindowHandle();
+  await driver.switchTo().newWindow("tab");
+  try {
+    await driver.get(extensionUrl("popup.html"));
+    const popup = await waitFor(
+      async () => {
+        const state = await driver.executeScript(() => ({
+          upcoming: document.querySelectorAll("#upcoming li").length,
+          recent: [...document.querySelectorAll("#recent li a")].map(a => ({
+            text: a.textContent,
+            href: a.href,
+          })),
+          recentHidden: document.getElementById("recentSection").hidden,
+        }));
+        return state.recent.length > 0 && state;
+      },
+      {what: "the popup to render"},
+    );
+    assert.equal(popup.upcoming, 3, "upcoming list is capped at three");
+    assert.equal(popup.recentHidden, false);
+    assert.deepEqual(
+      popup.recent.map(entry => entry.text),
+      ["p3", "p2", "p1"],
+    );
+    assert.deepEqual(
+      popup.recent.map(entry => pageName(entry.href)),
+      ["p3", "p2", "p1"],
+    );
+  } finally {
+    await driver.close();
+    await driver.switchTo().window(control);
+  }
 });

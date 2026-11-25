@@ -32,6 +32,10 @@ const DEFAULT_SETTINGS = {
   // is 5, but auto-stashing trickles tabs over time, so a longer window
   // avoids creating a folder per tab.)
   groupingMinutes: 60,
+  // How many of the most recently stashed tabs to list in the popup, so
+  // they can be found again without digging through the bookmarks UI.
+  // 0 turns the list off.
+  recentCount: 100,
   // One pattern per line. A tab whose URL contains a pattern (case
   // insensitive, "*" matches anything) is never stashed.
   whitelist: "",

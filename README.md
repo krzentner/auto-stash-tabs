@@ -5,15 +5,18 @@ when a tab has been idle for more than a configurable amount of time *and*
 more than a configurable number of tabs are open, the tab is bookmarked and
 closed.
 
-It combines the core behavior of
-[Tab Wrangler](https://github.com/tabwrangler/tabwrangler) (auto-close idle
-tabs, but never drop below a minimum tab count) with the storage format of
-[Tab Stash](https://github.com/josh-berry/tab-stash): stashed tabs are saved
-as bookmarks under the same `Tab Stash` folder, in `saved-<timestamp>` groups
-that the Tab Stash extension recognizes and displays natively. If you also
-have Tab Stash installed, auto-stashed tabs show up in its stash list just
-like manually stashed ones, and you can restore, rename, or organize them
-from there.
+This extension automatically "stashes" idle background tabs into bookmarks when
+more than a configurable number of tabs are open. It is designed to be used with
+Josh Berry's lovely [Tab Stash addon](https://github.com/josh-berry/tab-stash),
+which provides a snappy and convenient UI for saving, searching, and organizing
+tabs.
+Because this extension uses the same native bookmark format, Tab Stash treats
+auto stashed tabs just like manually stashed ones, and Firefox Sync can
+automatically synchronize them across devices.
+
+The functionality this extension adds is inspired by the 
+[Tab Wrangler Addon](https://github.com/tabwrangler/tabwrangler), (auto-close idle
+tabs, but never drop below a minimum tab count), but using native bookmarks.
 
 Both upstream projects are included as git submodules under `vendor/` for
 reference (they are not needed at runtime).
@@ -64,10 +67,18 @@ minimum tab count. Reader-view tabs are stashed as their underlying article URL.
   group if it is newer than this, otherwise start a new group.
 - **Deduplicate** (default on) — if a URL is already saved anywhere in the
   stash, don't create a second bookmark (the tab is still closed).
+- **Recent list size** (default 100) — how many recently stashed tabs the
+  toolbar popup lists; 0 turns the list off.
 
-The toolbar popup shows which tabs will be stashed next, lets you pause the
-extension, lock the current tab, or trigger an immediate "stash idle tabs
-now" sweep.
+The toolbar popup shows the three tabs that will be stashed next, lets you
+pause the extension, lock the current tab, or trigger an immediate "stash
+idle tabs now" sweep. Below that it lists the most recently added bookmarks
+in the `Tab Stash` folder, newest first; click one to reopen it
+(Ctrl/Cmd/middle-click for a background tab). This is the quickest way to get
+a tab back if you don't have Tab Stash installed. The list is read from the
+bookmarks themselves, so it also shows tabs stashed by Tab Stash, and a
+duplicate tab that was closed without a new bookmark appears at the time it
+was first stashed.
 
 ## Zen Browser
 
@@ -136,7 +147,7 @@ idle threshold to 0 instead), and Zen spaces.
 | `background.js` | Idle tracking, sweep state machine, Tab Stash-compatible bookmark writing |
 | `common.js`     | Shared settings defaults and helpers                 |
 | `options.*`     | Settings page                                        |
-| `popup.*`       | Toolbar popup (pause, lock tab, stash now, upcoming list) |
+| `popup.*`       | Toolbar popup (pause, lock tab, stash now, upcoming and recent lists) |
 | `vendor/`       | Upstream projects as submodules, for reference only  |
 | `Justfile`      | `just build` / `just lint` / `just test` tasks       |
 | `test/`         | Integration tests and their browser harness          |

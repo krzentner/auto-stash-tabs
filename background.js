@@ -29,7 +29,7 @@
  *       │
  *       ├─▶ stashTabs()     only in state NOW: for each planned tab,
  *       │       │           re-check it, bookmark it, then close it
- *       │       ├─▶ ensureStashRoot() ─▶ bookmarkDepth()
+ *       │       ├─▶ ensureStashRoot() ─▶ findStashRoot() ─▶ bookmarkDepth()
  *       │       ├─▶ ensureDestFolder()
  *       │       ├─▶ urlsUnderStashRoot()        (if deduplicating)
  *       │       ├─▶ ensureGroupFolder()         (for tabs in a tab group)
@@ -42,7 +42,8 @@
  *                           IDLE: clear the alarm and wait for an event
  *
  * The popup talks to this page through runtime messages (last listener
- * below): "getStatus" calls computeSweepPlan() and getStats() directly,
+ * below): "getStatus" calls computeSweepPlan(), recentlyStashed() (which
+ * reads the stash bookmarks via findStashRoot()) and getStats() directly,
  * "sweepNow" calls sweep({manual: true}), and "setPaused"/"setLocked" change
  * state that leads back into requestSweep(). updateBadge() runs at load and
  * whenever settings change.
@@ -219,43 +220,72 @@ async function bookmarkDepth(node) {
   return depth;
 }
 
-/** Find the "Tab Stash" root folder, choosing the same one Tab Stash would
- * if there are several, and creating it if there is none.
+/** Find the "Tab Stash" root folder without creating it, choosing the same
+ * one Tab Stash would if there are several.
+ * @returns {Promise<bookmarks.BookmarkTreeNode|undefined>} The root folder,
+ *   or undefined if there is none yet. */
+async function findStashRoot() {
+  const results = await browser.bookmarks.search({title: STASH_ROOT_NAME});
+  const folders = results.filter(n => !n.url && n.title === STASH_ROOT_NAME);
+  const withDepth = [];
+  for (const f of folders) {
+    withDepth.push({folder: f, depth: await bookmarkDepth(f)});
+  }
+  // Same ranking as Tab Stash: closest to the root wins, ties broken by
+  // creation date, then by id, so both extensions choose the same folder.
+  const minDepth = Math.min(...withDepth.map(c => c.depth));
+  return withDepth
+    .filter(c => c.depth <= minDepth)
+    .map(c => c.folder)
+    .sort(
+      (a, b) =>
+        (a.dateAdded || 0) - (b.dateAdded || 0) ||
+        (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
+    )[0];
+}
+
+/** Find the "Tab Stash" root folder, creating it if there is none.
  * @returns {Promise<bookmarks.BookmarkTreeNode>} The root folder. */
 async function ensureStashRoot() {
-  const findCandidates = async () => {
-    const results = await browser.bookmarks.search({title: STASH_ROOT_NAME});
-    const folders = results.filter(
-      n => !n.url && n.title === STASH_ROOT_NAME,
-    );
-    const withDepth = [];
-    for (const f of folders) {
-      withDepth.push({folder: f, depth: await bookmarkDepth(f)});
-    }
-    // Same ranking as Tab Stash: closest to the root wins, ties broken by
-    // creation date, then by id, so both extensions choose the same folder.
-    const minDepth = Math.min(...withDepth.map(c => c.depth));
-    return withDepth
-      .filter(c => c.depth <= minDepth)
-      .map(c => c.folder)
-      .sort(
-        (a, b) =>
-          (a.dateAdded || 0) - (b.dateAdded || 0) ||
-          (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
-      );
-  };
+  const existing = await findStashRoot();
+  if (existing) return existing;
+  // Like Tab Stash, create it with no explicit parent (lands in the
+  // browser's default bookmarks location), then re-search in case another
+  // extension created one concurrently. Fall back to the one we created in
+  // case the search doesn't see it yet.
+  const created = await browser.bookmarks.create({title: STASH_ROOT_NAME});
+  return (await findStashRoot()) || created;
+}
 
-  let candidates = await findCandidates();
-  if (candidates.length === 0) {
-    // Like Tab Stash, create it with no explicit parent (lands in the
-    // browser's default bookmarks location), then re-search in case another
-    // extension created one concurrently.
-    const created = await browser.bookmarks.create({title: STASH_ROOT_NAME});
-    candidates = await findCandidates();
-    // In case the search doesn't see the new folder yet.
-    if (candidates.length === 0) candidates = [created];
-  }
-  return candidates[0];
+/** The most recently stashed tabs, read from the bookmarks under the stash
+ * root. Because it reads the bookmarks themselves, it includes tabs stashed
+ * by Tab Stash or on another synced device, and drops ones that have since
+ * been deleted.
+ * @param {number} limit Maximum number of entries; 0 returns none.
+ * @returns {Promise<{title: string, url: string, time: number}[]>} Newest
+ *   first; time is when the bookmark was added. */
+async function recentlyStashed(limit) {
+  if (limit <= 0) return [];
+  const root = await findStashRoot();
+  if (!root) return [];
+  const [tree] = await browser.bookmarks.getSubTree(root.id);
+  const found = [];
+  const walk = node => {
+    if (node.url) {
+      found.push({
+        title: node.title || node.url,
+        url: node.url,
+        time: node.dateAdded || 0,
+        order: found.length,
+      });
+    }
+    for (const child of node.children || []) walk(child);
+  };
+  walk(tree);
+  // Newest first; bookmarks added in the same millisecond keep the reverse
+  // of their order in the tree.
+  found.sort((a, b) => b.time - a.time || b.order - a.order);
+  return found.slice(0, limit).map(({title, url, time}) => ({title, url, time}));
 }
 
 /** Find or create the folder new bookmarks should go into: the topmost
@@ -482,7 +512,6 @@ async function stashTabs(settings, toStash) {
   const whitelistRes = parseWhitelist(settings.whitelist);
 
   let stashed = 0;
-  const recent = [];
   for (const tab of toStash) {
     const url = unwrapUrl(tab.url);
     try {
@@ -511,41 +540,33 @@ async function stashTabs(settings, toStash) {
       // Only close the tab once the bookmark definitely exists.
       await browser.tabs.remove(tab.id);
       stashed++;
-      recent.push({title: tab.title || url, url, time: Date.now()});
     } catch (e) {
       console.error("auto-stash-tabs: failed to stash tab", tab.url, e);
     }
   }
 
-  if (stashed > 0) await recordStats(stashed, recent);
+  if (stashed > 0) await recordStats(stashed);
   return stashed;
 }
 
 /** Load the stashing statistics shown in the popup.
- * @returns {Promise<{totalStashed: number, lastStashTime: number|null,
- *   recent: {title: string, url: string, time: number}[]}>} Stored stats, or
- *   zeroed defaults if none have been saved. */
+ * @returns {Promise<{totalStashed: number, lastStashTime: number|null}>}
+ *   Stored stats, or zeroed defaults if none have been saved. */
 async function getStats() {
-  return (
-    (await browser.storage.local.get("stats")).stats || {
-      totalStashed: 0,
-      lastStashTime: null,
-      recent: [],
-    }
-  );
+  const {stats} = await browser.storage.local.get("stats");
+  return {
+    totalStashed: (stats && stats.totalStashed) || 0,
+    lastStashTime: (stats && stats.lastStashTime) || null,
+  };
 }
 
-/** Add a finished sweep to the stored statistics, keeping the 20 most
- * recent entries.
+/** Add a finished sweep to the stored statistics.
  * @param {number} count How many tabs were stashed.
- * @param {{title: string, url: string, time: number}[]} newEntries The
- *   stashed tabs, oldest first. Reversed in place.
  * @returns {Promise<void>} */
-async function recordStats(count, newEntries) {
+async function recordStats(count) {
   const stats = await getStats();
   stats.totalStashed += count;
   stats.lastStashTime = Date.now();
-  stats.recent = [...newEntries.reverse(), ...stats.recent].slice(0, 20);
   await browser.storage.local.set({stats});
 }
 
@@ -611,7 +632,8 @@ browser.runtime.onMessage.addListener(async message => {
       const stats = await getStats();
       return {
         settings,
-        upcoming: upcoming.slice(0, 8),
+        upcoming: upcoming.slice(0, 3),
+        recent: await recentlyStashed(settings.recentCount),
         lockedTabIds: [...lockedTabs],
         sweepState,
         stats,
