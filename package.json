@@ -8,6 +8,7 @@
     "test": "node --test test/integration.test.mjs"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "selenium-webdriver": "^4.27.0"
   }
 }

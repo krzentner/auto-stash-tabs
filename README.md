@@ -117,6 +117,8 @@ just build   # writes web-ext-artifacts/auto_stash_tabs-<version>.zip
 ```
 
 Both run `web-ext` through `npx` and leave `vendor/` out of the package.
+`just build` first runs `just icons`, which renders `icons/icon.svg` to the
+`icons/icon-<size>.png` files listed in the manifest.
 
 ### Integration tests
 
@@ -149,9 +151,11 @@ idle threshold to 0 instead), and Zen spaces.
 | `options.*`     | Settings page                                        |
 | `popup.*`       | Toolbar popup (pause, lock tab, stash now, upcoming and recent lists) |
 | `vendor/`       | Upstream projects as submodules, for reference only  |
-| `Justfile`      | `just build` / `just lint` / `just test` tasks       |
+| `icons/`        | `icon.svg` (the source) and the PNG sizes rendered from it |
+| `tools/`        | Build script that renders the PNG icons (not shipped) |
+| `Justfile`      | `just build` / `just icons` / `just lint` / `just test` tasks |
 | `test/`         | Integration tests and their browser harness          |
-| `package.json`  | Dev dependencies for the tests (not shipped)         |
+| `package.json`  | Dev dependencies for the tests and icons (not shipped) |
 
 ## License
 

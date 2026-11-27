@@ -1,13 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
-  <!-- Stash box -->
-  <path d="M14 42 h68 v38 a6 6 0 0 1 -6 6 H20 a6 6 0 0 1 -6 -6 z"
-        fill="#4f8edc"/>
-  <path d="M10 30 h76 a4 4 0 0 1 4 4 v8 H6 v-8 a4 4 0 0 1 4 -4 z"
-        fill="#3a6db0"/>
-  <!-- Tab dropping in -->
-  <rect x="36" y="6" width="24" height="18" rx="3" fill="#f5f5f7"
-        stroke="#3a3a44" stroke-width="2"/>
-  <!-- Arrow -->
-  <path d="M48 50 l-12 -14 h8 v-6 h8 v6 h8 z" fill="#f5f5f7"
-        transform="translate(0,18)"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Badge background -->
+  <rect width="32" height="32" rx="7" fill="#1d4ed8"/>
+  <g transform="translate(3.2 3.2) scale(.8)">
+    <!-- Stash bin holding stacked tabs (a nod to Tab Stash's logo) -->
+    <g fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"
+       stroke-linejoin="round">
+      <path d="M4 17v6a5 5 0 0 0 5 5h14a5 5 0 0 0 5-5v-6"/>
+      <path d="M9 18h14"/>
+      <path d="M11.5 22.5h9"/>
+    </g>
+    <!-- Lightning bolt ("auto"), with a background-coloured outline that
+         separates it from the bin where they overlap -->
+    <polygon points="18.64,-0.3 7.91,11.25 14.51,11.25 12.04,19.5 23.59,7.95 16.99,7.95"
+             fill="#1d4ed8" stroke="#1d4ed8" stroke-width="2.64"
+             stroke-linejoin="round"/>
+    <polygon points="18.64,-0.3 7.91,11.25 14.51,11.25 12.04,19.5 23.59,7.95 16.99,7.95"
+             fill="#fcd34d"/>
+  </g>
 </svg>

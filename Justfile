@@ -6,15 +6,20 @@
 set shell := ["powershell.exe", "-NoLogo", "-NoProfile", "-Command"]
 
 # Files that are in the repo but don't belong in the packaged extension.
-ignored := '"vendor" "vendor/**" "web-ext-artifacts" "web-ext-artifacts/**" "test" "test/**" "README.md" "Justfile" "package.json" "package-lock.json"'
+ignored := '"vendor" "vendor/**" "web-ext-artifacts" "web-ext-artifacts/**" "test" "test/**" "tools" "tools/**" "README.md" "Justfile" "package.json" "package-lock.json"'
 
 # List the available recipes.
 default:
     @just --list
 
 # Package the extension into web-ext-artifacts/ for addons.mozilla.org.
-build: _check-package-unlocked
+build: _check-package-unlocked icons
     npx web-ext build --overwrite-dest --ignore-files {{ignored}}
+
+# Render icons/icon.svg to the icons/icon-<size>.png files the manifest lists.
+icons:
+    npm install --no-audit --no-fund
+    node tools/build-icons.mjs
 
 # On Windows, a browser that has the package loaded as a temporary add-on
 # keeps the file open, and the build then fails with an unhelpful
@@ -32,9 +37,8 @@ test-headful: _test-setup
 
 # Builds a separate copy of the package for the tests, so a copy loaded in
 # your own browser can't lock the file, and installs the test dependencies.
-_test-setup:
+_test-setup: icons
     npx web-ext build --overwrite-dest --artifacts-dir web-ext-artifacts/test --ignore-files {{ignored}}
-    npm install --no-audit --no-fund
 
 # Run the same checks addons.mozilla.org runs on upload.
 lint:
