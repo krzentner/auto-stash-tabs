@@ -6,7 +6,7 @@
 set shell := ["powershell.exe", "-NoLogo", "-NoProfile", "-Command"]
 
 # Files that are in the repo but don't belong in the packaged extension.
-ignored := '"vendor" "vendor/**" "web-ext-artifacts" "web-ext-artifacts/**" "test" "test/**" "tools" "tools/**" "README.md" "Justfile" "package.json" "package-lock.json"'
+ignored := '"vendor" "vendor/**" "web-ext-artifacts" "web-ext-artifacts/**" "test" "test/**" "tools" "tools/**" "screenshots" "screenshots/**" "README.md" "Justfile" "package.json" "package-lock.json"'
 
 # List the available recipes.
 default:
@@ -34,6 +34,10 @@ test: _test-setup
 # Like `test`, but with a visible browser window so you can watch it run.
 test-headful: _test-setup
     $env:HEADFUL = '1'; node --test test/integration.test.mjs
+
+# Write screenshots of the popup and options page to screenshots/.
+screenshots: _test-setup
+    node test/screenshots.mjs
 
 # Builds a separate copy of the package for the tests, so a copy loaded in
 # your own browser can't lock the file, and installs the test dependencies.

@@ -141,6 +141,18 @@ runs headless and takes about half a minute.
 Not covered: tabs becoming idle through real elapsed time (the tests set the
 idle threshold to 0 instead), and Zen spaces.
 
+### Screenshots
+
+```sh
+just screenshots
+```
+
+uses the same harness to open a set of tabs, let the extension stash some of
+them, and save pictures of the popup (normal and paused) and the options
+page to `screenshots/`, each in the light and the dark theme
+(`test/screenshots.mjs`). The popup is photographed as a page in a tab,
+since Selenium can't capture it where it appears under the toolbar button.
+
 ### Layout
 
 | Path            | Purpose                                             |
@@ -153,8 +165,9 @@ idle threshold to 0 instead), and Zen spaces.
 | `vendor/`       | Upstream projects as submodules, for reference only  |
 | `icons/`        | `icon.svg` (the source) and the PNG sizes rendered from it |
 | `tools/`        | Build script that renders the PNG icons (not shipped) |
-| `Justfile`      | `just build` / `just icons` / `just lint` / `just test` tasks |
-| `test/`         | Integration tests and their browser harness          |
+| `Justfile`      | `just build` / `icons` / `lint` / `test` / `screenshots` tasks |
+| `test/`         | Integration tests, screenshot script and their browser harness |
+| `screenshots/`  | Output of `just screenshots` (not shipped)           |
 | `package.json`  | Dev dependencies for the tests and icons (not shipped) |
 
 ## License

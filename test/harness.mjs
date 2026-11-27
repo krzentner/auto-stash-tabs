@@ -105,9 +105,11 @@ export async function startPageServer() {
 
 /** Launch the browser, install the extension and open its options page as
  * the "control tab" that all extension-side code runs in.
+ * @param {{prefs?: Object<string, string|number|boolean>}} [options] Extra
+ *   browser preferences for the throwaway profile.
  * @returns {Promise<{driver: import("selenium-webdriver").WebDriver,
  *   binary: string|null}>} */
-export async function launch() {
+export async function launch({prefs = {}} = {}) {
   const pkg = builtPackagePath();
   if (!existsSync(pkg)) {
     throw new Error(`${pkg} not found; run the tests with \`just test\``);
@@ -126,6 +128,9 @@ export async function launch() {
   options.setPreference("browser.aboutwelcome.enabled", false);
   options.setPreference("datareporting.policy.dataSubmissionEnabled", false);
   options.setPreference("zen.welcome-screen.seen", true);
+  for (const [name, value] of Object.entries(prefs)) {
+    options.setPreference(name, value);
+  }
 
   const driver = await new Builder()
     .forBrowser("firefox")
